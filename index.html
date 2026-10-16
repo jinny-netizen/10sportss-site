@@ -7,16 +7,10 @@
    META_PIXEL_ID: Meta Pixel for 10Sports. Sends PageView on visit, Lead only when the button is tapped. */
 var SIGNUP_URL = "https://10sports.cricket/register/?c=6QE2br3K9l";
 var META_PIXEL_ID = "1022917280660411";
-/* A/B test: each visitor gets version a or b (50/50) and keeps it. Force one with ?ab=a or ?ab=b. */
+/* Version B for everyone (A/B test ended on this domain). ?ab=a still shows the old version A for comparison. */
 var AB = (function () {
-  var v;
-  try {
-    v = new URLSearchParams(location.search).get("ab");
-    if (v !== "a" && v !== "b") {
-      v = localStorage.getItem("ss_ab");
-      if (v !== "a" && v !== "b") { v = Math.random() < 0.5 ? "a" : "b"; localStorage.setItem("ss_ab", v); }
-    }
-  } catch (e) { v = Math.random() < 0.5 ? "a" : "b"; }
+  var v = "b";
+  try { if (new URLSearchParams(location.search).get("ab") === "a") v = "a"; } catch (e) {}
   document.documentElement.className = "v-" + v;
   return v;
 })();
