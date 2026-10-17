@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <script>
 /* SIGNUP_URL: where the button goes (your 10Sports referral link).
-   META_PIXEL_ID: Meta Pixel for 10Sports. Sends PageView on visit, Lead only when the button is tapped. */
+   META_PIXEL_ID: Meta Pixel for 10Sports. This page sends ONLY two events, directly (Meta's fbevents.js is NOT
+   loaded, so no automatic events and no Event-Setup-Tool rules can run here):
+     PageView -> when the page opens
+     Lead     -> only when the visitor taps a button (the sign-up page opens at once, no waiting) */
 var SIGNUP_URL = "https://10sports.cricket/register/?c=6QE2br3K9l";
 var META_PIXEL_ID = "1022917280660411";
 /* Version B for everyone (A/B test ended on this domain). ?ab=a still shows the old version A for comparison. */
@@ -14,14 +17,28 @@ var AB = (function () {
   document.documentElement.className = "v-" + v;
   return v;
 })();
-if (META_PIXEL_ID) {
-  // Standard Meta Pixel queue: ready immediately; the script itself loads after the page is on screen.
-  !function (f, n) { if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); }; if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; }(window);
-  fbq("init", META_PIXEL_ID);
-  fbq("track", "PageView");
-  var loadPixel = function () { var t = document.createElement("script"); t.async = true; t.src = "https://connect.facebook.net/en_US/fbevents.js"; document.head.appendChild(t); };
-  if (document.readyState === "complete") loadPixel(); else window.addEventListener("load", loadPixel);
-}
+/* Sends one pixel event straight to Meta (~1 KB), fire-and-forget. keepalive lets it finish even while the
+   page is changing to the sign-up site, so nobody ever waits for it. Keeps _fbp and the ad click id (fbclid). */
+var sendPixel = function (ev) {
+  if (!META_PIXEL_ID) return;
+  try {
+    var now = Date.now(), fbp = (document.cookie.match(/(?:^|; )_fbp=([^;]+)/) || [])[1];
+    if (!fbp) {
+      fbp = "fb.1." + now + "." + Math.floor(Math.random() * 1e10);
+      document.cookie = "_fbp=" + fbp + "; max-age=7776000; path=/; SameSite=Lax";
+    }
+    var p = new URLSearchParams({
+      id: META_PIXEL_ID, ev: ev, dl: location.href, rl: document.referrer, ts: String(now), fbp: fbp,
+      eid: ev.toLowerCase() + "." + now + "." + Math.random().toString(36).slice(2, 10)
+    });
+    var fbclid = new URLSearchParams(location.search).get("fbclid");
+    if (fbclid) p.set("fbc", "fb.1." + now + "." + fbclid);
+    var u = "https://www.facebook.com/tr/?" + p.toString();
+    if (window.fetch) fetch(u, { mode: "no-cors", keepalive: true, credentials: "include" }).catch(function () {});
+    else new Image().src = u;
+  } catch (err) {}
+};
+sendPixel("PageView");
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Need a New ID? — 10Sports</title>
@@ -31,7 +48,6 @@ if (META_PIXEL_ID) {
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2325d366'/%3E%3Cpath d='M9 23l1.2-4A7 7 0 1114 22z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://10sports.cricket">
 <link rel="dns-prefetch" href="https://10sports.cricket">
-<link rel="dns-prefetch" href="https://connect.facebook.net">
 <link rel="preconnect" href="https://newid.walink.dev">
 <link rel="dns-prefetch" href="https://www.facebook.com">
 <style>
@@ -279,44 +295,12 @@ if (META_PIXEL_ID) {
     } else sticky.classList.add("show");
   }
 
-  // Lead is sent only when the visitor taps the button (never automatically).
-  function sendLead(done) {
-    if (!META_PIXEL_ID) { done && done(); return; }
-    var finished = false, finish = function () { if (!finished) { finished = true; done && done(); } };
-    var eid = "lead." + Date.now() + "." + Math.random().toString(36).slice(2, 10);
-    // Meta's script loaded: send through it (uses the _fbp cookie, best matching).
-    if (window.fbq && window.fbq.getState) {
-      try { window.fbq("track", "Lead", {}, { eventID: eid }); } catch (err) {}
-      setTimeout(finish, 300);
-      return;
-    }
-    // Tapped before Meta's script finished loading (e.g. slow 3G): lightweight fallback.
-    try {
-      var p = new URLSearchParams({
-        id: META_PIXEL_ID, ev: "Lead", dl: location.href, rl: document.referrer,
-        ts: String(Date.now()), eid: eid
-      });
-      var fbclid = new URLSearchParams(location.search).get("fbclid");
-      if (fbclid) p.set("fbc", "fb.1." + Date.now() + "." + fbclid);  // keeps ad-click attribution
-      var img = new Image();
-      img.onload = img.onerror = finish;
-      img.src = "https://www.facebook.com/tr/?" + p.toString();
-    } catch (err) { finish(); return; }
-    setTimeout(finish, 400);  // never hold the visitor longer than 0.4 s
-  }
-
-  var going = false;
-  links.forEach(function (link) { link.addEventListener("click", function (e) {
+  // Button tap: send Lead (fire-and-forget) and let the link open the sign-up page immediately.
+  // No preventDefault, no timer: the browser navigates on the same tap.
+  links.forEach(function (link) { link.addEventListener("click", function () {
     try { (window.dataLayer = window.dataLayer || []).push({ event: "signup_click", variant: AB }); } catch (err) {}
-    if (!META_PIXEL_ID) return;                                     // no pixel: plain link, go now
-    if (e.ctrlKey || e.metaKey || e.shiftKey) { sendLead(); return; }  // new-tab clicks
-    e.preventDefault();
-    if (going) return; going = true;
-    var href = link.href;
-    sendLead(function () { location.href = href; });
+    sendPixel("Lead");
   }); });
-  // Coming back with the Back button: allow tapping again.
-  window.addEventListener("pageshow", function () { going = false; });
 
 })();
 </script>
