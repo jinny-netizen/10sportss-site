@@ -58,6 +58,7 @@ box-shadow:0 0 0 5px rgba(255,138,31,.16),0 12px 30px rgba(255,120,20,.3);-webki
 .go strong{display:block;font-size:21px;font-weight:900}
 .go span{display:block;margin-top:2px;font-size:13px;font-weight:700;color:#4a2300}
 .go:active,.st:active{opacity:.85}
+.ar{margin-top:8px;text-align:center;font-size:13px;color:#a9bbb0}.ar b{color:#ff8a1f}
 /* Flash on the main button, same as 10sp.walink.dev: pulsing orange glow + light sheen (off for reduced motion). */
 .go{position:relative;overflow:hidden;-webkit-animation:g 1.6s ease-in-out infinite;animation:g 1.6s ease-in-out infinite}
 @-webkit-keyframes g{0%,100%{box-shadow:0 0 0 3px rgba(255,138,31,.22),0 0 14px rgba(255,138,31,.35)}50%{box-shadow:0 0 0 7px rgba(255,138,31,.32),0 0 34px rgba(255,150,40,.85)}}
@@ -88,6 +89,7 @@ background:#ff8a1f;color:#1c0a00;font-size:18px;font-weight:900;box-shadow:0 8px
 <p class="sub">Sign up in a few quick steps. Works on any phone.</p>
 <a class="go j" id="go" data-b="b_main" href="https://10sports.club/register/?c=6QE2br3K9l"><strong>Get my ID now</strong><span>Free sign-up, takes about 2 minutes</span></a>
 <p class="tk"><span>Free</span><span>2 minutes</span><span>Any phone</span></p>
+<p class="ar" id="ar">Opening sign-up automatically in <b id="arn">5</b>s</p>
 <ol>
 <li><b>1</b>Tap “Get my ID now”</li>
 <li><b>2</b>Enter your 10-digit mobile number</li>
@@ -116,10 +118,26 @@ background:#ff8a1f;color:#1c0a00;font-size:18px;font-weight:900;box-shadow:0 8px
   function bind(a) {
     a.href = href;
     a.addEventListener("click", function () {   // no preventDefault: the sign-up page opens on the same tap
+      gone = true;
       hit("tap", a.getAttribute("data-b"));
       px("Lead");
     }, false);
   }
+  // Automatic redirect after AUTO_SECONDS. Counted as "auto" in our stats and NOT as a Meta Lead
+  // (Lead = a real tap only). A tap cancels it.
+  var AUTO_SECONDS = 5, gone = false, left = AUTO_SECONDS, tm = null, arn = document.getElementById("arn");
+  function tick() {
+    if (gone) return;
+    left--;
+    if (arn) arn.innerHTML = left > 0 ? left : 0;
+    if (left > 0) { tm = setTimeout(tick, 1000); return; }
+    gone = true;
+    hit("auto", "auto");
+    location.assign(href);
+  }
+  function start() { if (!tm && !gone) tm = setTimeout(tick, 1000); }
+  if (!document.visibilityState || document.visibilityState === "visible") start();
+  else document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") start(); }, false);
   for (i = 0; i < L.length; i++) bind(L[i]);
   // Sticky bottom button: shown whenever the main button is off screen.
   var st = document.getElementById("st"), go = document.getElementById("go");
