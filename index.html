@@ -58,6 +58,14 @@ box-shadow:0 0 0 5px rgba(255,138,31,.16),0 12px 30px rgba(255,120,20,.3);-webki
 .go strong{display:block;font-size:21px;font-weight:900}
 .go span{display:block;margin-top:2px;font-size:13px;font-weight:700;color:#4a2300}
 .go:active,.st:active{opacity:.85}
+/* Flash on the main button, same as 10sp.walink.dev: pulsing orange glow + light sheen (off for reduced motion). */
+.go{position:relative;overflow:hidden;-webkit-animation:g 1.6s ease-in-out infinite;animation:g 1.6s ease-in-out infinite}
+@-webkit-keyframes g{0%,100%{box-shadow:0 0 0 3px rgba(255,138,31,.22),0 0 14px rgba(255,138,31,.35)}50%{box-shadow:0 0 0 7px rgba(255,138,31,.32),0 0 34px rgba(255,150,40,.85)}}
+@keyframes g{0%,100%{box-shadow:0 0 0 3px rgba(255,138,31,.22),0 0 14px rgba(255,138,31,.35)}50%{box-shadow:0 0 0 7px rgba(255,138,31,.32),0 0 34px rgba(255,150,40,.85)}}
+.go:after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.45),rgba(255,255,255,0));-webkit-transform:skewX(-20deg);transform:skewX(-20deg);-webkit-animation:sh 2.8s ease-in-out infinite;animation:sh 2.8s ease-in-out infinite}
+@-webkit-keyframes sh{0%,55%{left:-60%}100%{left:130%}}
+@keyframes sh{0%,55%{left:-60%}100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.go{-webkit-animation:none;animation:none}.go:after{display:none}}
 .tk{margin-top:12px;text-align:center;font-size:13px;font-weight:700;color:#a9bbb0}
 .tk span{display:inline-block;margin:0 7px}
 .tk span:before{content:"\2713\00a0";color:#8af0ad}
